@@ -6,7 +6,8 @@ extern  macro %1    ;统一用extern导入外部标识符
 endm
 
 ;导入C中的全局函数或全局变量
-extern _pro:near
+extern _sector_number:near
+extern _current_seg:near
 extern _input:near
 extern _cmain:near
 extern _create_new_PCB:near
@@ -15,9 +16,10 @@ extern _process_number:near
 extern _current_process_number:near
 extern _first_time:near
 extern _save_PCB:near
-extern _shedule:near
+extern _schedule:near
 extern _get_current_process_PCB:near
 
+back_time dw 0
 
 ;=========================================================================
 ;					void _run_test();
@@ -45,37 +47,6 @@ _run_test proc
 	
 	jmp dword ptr ds:[0]                       ; 跳转到该内存地址
 _run_test endp
-
-
-;=========================================================================
-;					void _run();
-;=========================================================================
-;加载并运行程序
-public _run
-_run proc
-
-	xor ax, ax
-	mov es, ax
-	;mov word ptr es:[24h], offset KeyInt
-	;mov word ptr es:[26h], cs
-	
-	mov ax,1000h
-	mov es,ax 		                ;设置段地址, 存放数据的内存基地址
-	mov bx,100h						; ES:BX=读入数据到内存中的存储地址
-	mov ah,2 		                ; 功能号
-	mov al,1 	                	; 要读入的扇区数 1
-	mov dl,0                 		; 软盘驱动器号（对硬盘和U盘，此处的值应改为80H）
-	mov dh,0 		                ; 磁头号
-	mov ch,0                 		; 柱面号
-	mov cl,byte ptr[_pro]          	; 起始扇区号（编号从1开始）
-	int 13H 		                ; 调用13H号中断
-	
-	mov word ptr ds:[0], 0100h
-	mov word ptr ds:[2], 1000h
-	
-	jmp dword ptr ds:[0]                       ; 跳转到该内存地址
-	
-_run endp
 
 
 ;************ *****************************
@@ -165,31 +136,26 @@ _getChar endp
 
 
 ;=========================================================================
-;					void _run_process(int start, int number, int seg)
+;					void _run_process(int start, int seg)
 ;=========================================================================
 public _run_process
 _run_process proc
-	pusha
-	push bp
 	push es
 	
-	mov bp, sp
-	mov ax, [bp+10]
+	mov ax, word ptr [_current_seg]
 	mov es, ax
 	mov bx, 100h
 	mov ah, 2
-	mov al, [bp+8]
+	mov al, 1
 	mov dl, 0
-	mov dh, 1
+	mov dh, 0
 	mov ch, 0
-	mov cl, [bp+6]
+	mov cl, byte ptr [_sector_number]
 	int 13h
 	
 	call _create_new_PCB
 	
 	pop es
-	pop bp
-	popa
 	ret
 _run_process endp
 
@@ -204,7 +170,8 @@ _set_timer proc
 	out 43h, al
 	mov ax, 11931		;频率为100Hz
 	out 40h, al
-	out 40h, ah
+	mov al, ah
+	out 40h, al
 	pop ax
 	ret
 _set_timer endp
@@ -232,31 +199,31 @@ _set_clock endp
 ;****************************
 Timer:
 	cmp word ptr [_kernal_mode], 1
-	je kernal_timer
-	jmp process_timer
+	jne process_timer
+	jmp kernal_timer
 	
 process_timer:
 	.386
 	push ss
 	push gs
 	push fs
-	.8086
 	push es
 	push ds
+	.8086
 	push di
 	push si
-	push sp
 	push bp
-	push bx
+	push sp
 	push dx
 	push cx
+	push bx
 	push ax
 	
-	cmp word ptr [back_time], 200
+	cmp word ptr [back_time], 800
 	jnz time_to_go
-	mov word ptr [_current_process_number], 0
+	mov word ptr [back_time], 0
 	mov word ptr [_kernal_mode], 1
-	jmp store_PCB
+	jmp back_cycle
 	
 time_to_go:
 	inc word ptr [time_to_go]
@@ -264,12 +231,12 @@ time_to_go:
 	mov ds, ax
 	mov es, ax
 	call _save_PCB
-	call _shedule
+	call _schedule
 	
 store_PCB:
 	mov ax, cs
 	mov ds, ax
-	call _get_current_process_PCB()
+	call _get_current_process_PCB
 	mov si, ax
 	mov ss, word ptr ds:[si]
 	mov sp, word ptr ds:[si+2*7]
@@ -282,6 +249,7 @@ next_time:
 	add sp, 11*2						
 	
 start_PCB:
+	mov ax, 0
 	push word ptr ds:[si+2*15]
 	push word ptr ds:[si+2*14]
 	push word ptr ds:[si+2*13]
@@ -311,8 +279,6 @@ process_timer_end:
 	iret
 	
 kernal_timer:
-	pusha
-	push bp
     push es
 	push ds
 	
@@ -329,31 +295,32 @@ kernal_timer:
 	jz ch4
 	
 ch1:
-	mov bp, '/'
+	mov bl, '/'
 	jmp showch
 	
 ch2:
-	mov bp, '|'
+	mov bl, '|'
 	jmp showch
 	
 ch3:
-    mov bp, '\'
+    mov bl, '\'
 	jmp showch
 	
 ch4:
 	mov byte ptr es:[tmp],0
-	mov bp, '-'
+	mov bl, '-'
 	jmp showch
 	
 showch:
-	mov ah,13h 	                        ; 功能号
-	mov al,0                     		; 光标放到串尾
-	mov bl,0Fh 	                        ; 0000：黑底、1111：亮白字
-	mov bh,0 	                    	; 第0页
-	mov dh,24 	                        ; 第24行
-	mov dl,78 	                        ; 第78列
-	mov cx,1 	                        ; 串长为 1
-	int 10h 	                    	; 调用10H号中断
+	.386
+	push gs
+	mov	ax,0B800h				; 文本窗口显存起始地址
+	mov	gs,ax					; GS = B800h
+	mov ah,0Fh
+	mov al,bl
+	mov word[gs:((80 * 24 + 78) * 2)], ax
+	pop gs    
+	.8086
 	mov byte ptr es:[cccount],8
 	
 fin:
@@ -363,12 +330,9 @@ fin:
 	
 	pop ds
 	pop es                              ; 恢复寄存器信息
-	pop bp
-	popa
 	iret		
 	
 	cccount db 8					     ; 计时器计数变量，初值=8
-	back_time dw 0
 	tmp db 0
 
 ;****************************
@@ -611,79 +575,22 @@ _int37 proc
 	int 37
 	ret
 _int37 endp
-
+	
 
 ;****************************
-; 键盘中断程序              *
+; 休眠系统调用程序          *
 ;****************************
-KeyInt:
-    push ax
-    push bx
-    push cx
-    push dx
-	push bp
-	push es
-	push ds
-	
-	mov ax, cs
-	mov ds, ax
-	mov es, ax
-	
-	inc byte ptr es:[odd]
-	cmp byte ptr es:[odd], 1
-	je print
-	mov byte ptr es:[odd], 0
-	jmp final
-	
-print:
-    mov ah,13h 	                    ; 功能号
-	mov al,0                 		; 光标放到串尾
-	mov bl,0ah 	                    ; 亮绿
-	mov bh,0 	                	; 第0页
-	mov dh,byte ptr es:[cnn] 	    ; 第 cnn 行
-	mov dl,byte ptr es:[cnn]	    ; 第 cnn 列
-	mov bp, offset OUCH 	        ; BP=串地址
-	mov cx,10  	                    ; 串长为 10
-	int 10h 		                ; 调用10H号中断
-    
+
+sleep:
+	push cx
+	mov cx, 50
+loop3:
 	call Delay
-	
-	mov ax, 0601h					;清除OUCH!OUCH!
-	mov bh, 0Fh
-	mov ch, byte ptr es:[cnn]
-	mov cl, byte ptr es:[cnn]
-	mov dh, byte ptr es:[cnn]
-	mov dl, byte ptr es:[cnn]
-	add dl, 10
-	int 10h
-	
-	inc byte ptr es:[cnn]
-	cmp byte ptr es:[cnn], 25
-	jne final
-	mov byte ptr es:[cnn], 0
-	
-final:
-	in al,60h
-
-	mov al,20h					    ; AL = EOI
-	out 20h,al						; 发送EOI到主8529A
-	out 0A0h,al					    ; 发送EOI到从8529A
-	
-	pop ds
-	pop es
-	pop bp
-	pop dx
+	loop loop3
 	pop cx
-	pop bx
-	pop ax
-	
-	iret							; 从中断返回
-
-OUCH:
-    db "OUCH!OUCH!"
-	cnn db 0
-	odd db 1
-	
+	iret
+	 
+	 
 Delay:
 	push ax
 	push cx
@@ -700,18 +607,3 @@ loop2:
 	pop cx
 	pop ax
 	ret
-	
-
-;****************************
-; 休眠系统调用程序          *
-;****************************
-
-sleep:
-	push cx
-	mov cx, 50
-loop3:
-	call Delay
-	loop loop3
-	pop cx
-	iret
-	 

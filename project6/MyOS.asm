@@ -24,15 +24,19 @@ start:
 		mov word ptr es:[37*4+2], cs
 		
 		mov word ptr es:[38*4], offset sleep
-		mov word ptr es:[38*4+2], cs
+		mov word ptr es:[38*4+2], cs	
+		
+		call _set_clock
 		
 		mov ax,cs;准备设置有关的段寄存器
 		mov ds,ax; DS = CS
 		mov es,ax; ES = CS
 		mov ss,ax; SS = cs
 		mov sp, 0FFF0h ;栈顶在段内高端，留空了16单元
-		
+
+back_cycle:
 		call near ptr _cmain
+		
 ;汇编预处理安排在这里
     	jmp $	
 ;利用包含伪指令，将一些内核汇编语言过程文件纳入本程序，如本例中kliba.asm文件		

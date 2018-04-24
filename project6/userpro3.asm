@@ -1,5 +1,5 @@
 	org 100h
-	delay equ 50000
+	delay equ 8000
 	ddelay equ 220
 
 %macro rolling 8 ;(pos1, char2, color3, speed4, min_x5, min_y6, max_x7, max_y8)

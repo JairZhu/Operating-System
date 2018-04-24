@@ -12,7 +12,7 @@ extern void int37();
 
 extern void run_process();
 
-char input, pro;
+char input, sector_number;
 
 void print(char *str) {
 	while(*str != '\0') {
@@ -92,21 +92,16 @@ void help() {
 	print("  <cls>  -- clean the screen\n\r");
 	print("  <ls>   -- show the information of programs\n\r");
 	print("  <t>    -- test system call function\n\r");
-	print("  <r>    -- run user programs like r 1\n\r");
+	print("  <r>    -- run user programs like r 1234\n\r");
 	print("  <q>    -- quit user program\n\r");
 	print("  <int>  -- call the interrupt service like int34\n\r");
 	print("  <help> -- show all the supported shell commands\n\n\r");
 }
 
-void run_user_program(char *comm) {
-	int i;
+void create_process(char *comm) {
+	int i, sum = 0, flag = 0;
 	for (i = 1; i < strlen(comm); ++i) {
-		if (comm[i] == ' ') continue;
-		else if (comm[i] >= '1' && comm[i] <= '4') {
-			pro = comm[i] - '0' + 10;
-			run();
-			return;
-		}
+		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '4') continue;
 		else {
 			print("  invalid program number: ");
 			printChar(comm[i]);
@@ -114,30 +109,26 @@ void run_user_program(char *comm) {
 			return;
 		}
 	}
-}
-
-void create_process(char *comm) {
-	int i, sector_number;
 	for (i = 1; i < strlen(comm); ++i) {
-		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '4') continue;
-		else {
-			print("invalid program number: ");
-			printChar(comm[i]);
-			print("\n\n\r");
-			return;
-		}
+		if (comm[i] != ' ') flag = 1;
 	}
-	for (i = 1; i < strlen(comm); ++i) {
+	if (flag == 0) {
+		print("  invalid input\n\n\r");
+		return;
+	}
+	for (i = 1; i < strlen(comm) && sum < MAX_PCB_NUMBER; ++i) {
 		if (comm[i] == ' ') continue;
-		sector_number = comm[i] - '0';
-		run_process(sector_number, 1, current_seg);
+		sum++;
+		sector_number = comm[i] - '0' + 9;
+		run_process(sector_number, current_seg);
 	}
-	PCB_initial(&PCB_LIST[0], 1, 0x1000);
 	kernal_mode = 0;
 }
 
-cmain() {	
+cmain() {
+	initial_PCB_settings();
 	initial();
+	kernal_mode = 1;
 	while(1) {
 		char commands[100];
 		print("  root@MyOS:~#");
@@ -145,7 +136,7 @@ cmain() {
 		if (strcmp(commands, "help") == 0) help();
 		else if (strcmp(commands, "cls") == 0) cls();
 		else if (strcmp(commands, "ls") == 0) ls();
-		else if (commands[0] == 'r') run_user_program(commands);
+		else if (commands[0] == 'r') create_process(commands);
 		else if (strcmp(commands, "t") == 0) run_test();
 		else if (commands[0] == '\0') continue;
 		else if (strcmp(commands, "int34") == 0) int34();
