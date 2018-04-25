@@ -34,7 +34,6 @@ start:
 		mov ss,ax; SS = cs
 		mov sp, 0FFF0h ;栈顶在段内高端，留空了16单元
 
-back_cycle:
 		call near ptr _cmain
 		
 ;汇编预处理安排在这里

@@ -84,8 +84,7 @@ void ls() {
 	print("  User Program 2 -- size: 1KB, sector number: 11th\n\r");
 	print("  User Program 3 -- size: 1KB, sector number: 12th\n\r");
 	print("  User Program 4 -- size: 1KB, sector number: 13th\n\r");
-	print("  User Program 5 -- size: 1KB, sector number: 14th\n\r");
-	print("  System Service Program -- size: 1KB, sector number: 15th\n\n\r");
+	print("  System Service Program -- size: 1KB, sector number: 14th\n\n\r");
 }
 
 void help() {
@@ -102,7 +101,7 @@ void help() {
 void create_process(char *comm) {
 	int i, sum = 0, flag = 0;
 	for (i = 1; i < strlen(comm); ++i) {
-		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '5') continue;
+		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '4') continue;
 		else {
 			print("  invalid program number: ");
 			printChar(comm[i]);
@@ -117,10 +116,11 @@ void create_process(char *comm) {
 		print("  invalid input\n\n\r");
 		return;
 	}
+	run_process(10, current_seg);
 	for (i = 1; i < strlen(comm) && sum < MAX_PCB_NUMBER; ++i) {
 		if (comm[i] == ' ') continue;
 		sum++;
-		sector_number = comm[i] - '0' + 9;
+		sector_number = comm[i] - '0' + 10;
 		run_process(sector_number, current_seg);
 	}
 	kernal_mode = 0;
