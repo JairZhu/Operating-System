@@ -19,7 +19,7 @@ extern _save_PCB:near
 extern _schedule:near
 extern _get_current_process_PCB:near
 
-back_time dw 0
+back_time dw 1
 
 ;=========================================================================
 ;					void _run_test();
@@ -31,19 +31,19 @@ _run_test proc
 	xor ax, ax
 	mov es, ax
 	
-	mov ax,1000h
+	mov ax,09000h
 	mov es,ax 		                ;设置段地址, 存放数据的内存基地址
 	mov bx,100h						; ES:BX=读入数据到内存中的存储地址
 	mov ah,2 		                ; 功能号
-	mov al,2 	                	; 要读入的扇区数 2
+	mov al,1 	                	; 要读入的扇区数 2
 	mov dl,0                 		; 软盘驱动器号（对硬盘和U盘，此处的值应改为80H）
 	mov dh,0 		                ; 磁头号
 	mov ch,0                 		; 柱面号
-	mov cl,9			          	; 起始扇区号（编号从1开始）
+	mov cl,15			          	; 起始扇区号（编号从1开始）
 	int 13H 		                ; 调用13H号中断
 	
 	mov word ptr ds:[0], 0100h
-	mov word ptr ds:[2], 1000h
+	mov word ptr ds:[2], 09000h
 	
 	jmp dword ptr ds:[0]                       ; 跳转到该内存地址
 _run_test endp
@@ -219,14 +219,18 @@ process_timer:
 	push bx
 	push ax
 	
-	cmp word ptr [back_time], 800
+	cmp word ptr [back_time], 0
 	jnz time_to_go
-	mov word ptr [back_time], 0
+	mov word ptr [back_time], 1
 	mov word ptr [_kernal_mode], 1
-	jmp back_cycle
+	add sp, 11*2
+	push 512
+	push 800h
+	push 100h
+	iret
 	
 time_to_go:
-	inc word ptr [time_to_go]
+	inc word ptr [back_time]
 	mov ax, cs
 	mov ds, ax
 	mov es, ax

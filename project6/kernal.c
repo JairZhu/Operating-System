@@ -80,11 +80,12 @@ void initial() {
 }
 
 void ls() {
-	print("  User Program 1 -- size: 1KB, sector number: 8th\n\r");
-	print("  User Program 2 -- size: 1KB, sector number: 9th\n\r");
-	print("  User Program 3 -- size: 1KB, sector number: 10th\n\r");
-	print("  User Program 4 -- size: 1KB, sector number: 11th\n\r");
-	print("  System Service Program -- size: 1KB, sector number: 12th\n\n\r");
+	print("  User Program 1 -- size: 1KB, sector number: 10th\n\r");
+	print("  User Program 2 -- size: 1KB, sector number: 11th\n\r");
+	print("  User Program 3 -- size: 1KB, sector number: 12th\n\r");
+	print("  User Program 4 -- size: 1KB, sector number: 13th\n\r");
+	print("  User Program 5 -- size: 1KB, sector number: 14th\n\r");
+	print("  System Service Program -- size: 1KB, sector number: 15th\n\n\r");
 }
 
 void help() {
@@ -101,7 +102,7 @@ void help() {
 void create_process(char *comm) {
 	int i, sum = 0, flag = 0;
 	for (i = 1; i < strlen(comm); ++i) {
-		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '4') continue;
+		if (comm[i] == ' ' || comm[i] >= '1' && comm[i] <= '5') continue;
 		else {
 			print("  invalid program number: ");
 			printChar(comm[i]);

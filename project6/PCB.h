@@ -67,6 +67,11 @@ void save_PCB(int ax, int bx, int cx, int dx, int sp, int bp, int si, int di, in
 }
 
 void schedule() {
+	if (current_process_PCB_ptr->status == PCB_READY) {
+		first_time = 1;
+		current_process_PCB_ptr->status = PCB_RUNNING;
+		return;
+	}
 	current_process_PCB_ptr->status = PCB_BLOCKED;
 	current_process_number++;
 	if (current_process_number >= process_number) current_process_number = 0;

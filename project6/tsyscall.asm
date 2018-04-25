@@ -1,9 +1,3 @@
-extrn _cmain:near
-
-.8086
-_TEXT segment byte public 'CODE'
-assume cs:_TEXT
-DGROUP group _TEXT,_DATA,_BSS
 org 100h
 
 start:
@@ -14,12 +8,10 @@ start:
 	
 	call cls
 	int 34
-	int 38
 	int 35
-	int 38
 	int 36
-	int 38
 	int 37
+	int 38
 	int 38
 	call cls
 	mov ah, 1
@@ -30,8 +22,6 @@ start:
 	int 21h
 	int 38
 	int 38
-	
-	call near ptr _cmain
 	
 return:
 	int 20h
@@ -48,13 +38,5 @@ cls:				;清屏操作
     int 10h        ;调用中断
 	ret 
 	
-_TEXT ends
-
-_DATA segment word public 'DATA'
-
-_DATA ends
-
-_BSS	segment word public 'BSS'
-_BSS ends
-
-end start
+times 510-($-$$) db 0  
+dw  0xaa55
